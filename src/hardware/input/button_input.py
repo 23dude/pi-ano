@@ -36,7 +36,7 @@ class ButtonInput:
     Wiring (using pull-up inputs, active LOW):
         KEY_0 → D25
         KEY_1 → D24 (long-press for "next soundfont")
-        KEY_2 → D18
+        KEY_2 → D23
         KEY_3 → D15
         KEY_4 → D14  (long-press for "next mode")
 
@@ -46,7 +46,7 @@ class ButtonInput:
             - On release edge (LOW → HIGH): emit NOTE_OFF
         - Long press on KEY_4 (D14):
             - If held for at least LONG_PRESS_NEXT_MODE_SEC: emit EventType.NEXT_MODE (once per press)
-        - Long press on KEY_1 (D25):
+        - Long press on KEY_1 (D24):
             - If held for at least LONG_PRESS_NEXT_SF2_SEC: emit EventType.NEXT_SF2 (once per press)
 
     Note:
