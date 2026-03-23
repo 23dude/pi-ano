@@ -9,3 +9,6 @@ venv/
 # Editor/OS
 .vscode/
 .DS_Store
+
+# Runtime data
+high_scores.json
