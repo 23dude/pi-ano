@@ -69,6 +69,7 @@ def main() -> None:
         rhythm=rhythm,
         song=song,
         pico_display=pico_display,
+        led=led,
     )
 
     print_startup_help()

@@ -19,6 +19,7 @@ class InputManager:
         rhythm,
         song,
         pico_display: Optional[PicoModeDisplay] = None,
+        led=None,
     ) -> None:
         self.menu = menu
         self.piano = piano
@@ -26,6 +27,7 @@ class InputManager:
         self.song = song
 
         self.pico_display = pico_display
+        self._led = led
 
         self.current_mode: str = "menu"
         self._mode_order = ["menu", "piano", "rhythm", "song"]
@@ -52,9 +54,10 @@ class InputManager:
 
         # Demo mode state
         self._demo_active: bool = False
-        self._demo_phase: str = ""       # "PIANO", "RHYTHM", "SONG"
+        self._demo_phase: str = ""       # "PIANO", "RHYTHM_SELECT", "RHYTHM_PLAY", "SONG"
         self._demo_phase_start: float = 0.0
         self._demo_piano_duration: float = 20.0
+        self._rhythm_postgame_just_finished: bool = False
 
     @property
     def current_mode_name(self) -> str:
@@ -157,12 +160,11 @@ class InputManager:
         print("[DEMO] Phase: PIANO (20s)")
 
     def _demo_start_rhythm(self, now: float) -> None:
-        self._demo_phase = "RHYTHM"
+        self._demo_phase = "RHYTHM_SELECT"
         self._demo_phase_start = now
         self._switch_mode("rhythm", now)
-        self.rhythm.set_difficulty("easy")
-        self.rhythm.start_play_after_countdown(now)
-        print("[DEMO] Phase: RHYTHM (easy, auto-play)")
+        # don't auto-select difficulty; let user pick within 20s
+        print("[DEMO] Phase: RHYTHM_SELECT (waiting for difficulty, 20s timeout)")
 
     def _demo_start_song(self, now: float) -> None:
         self._demo_phase = "SONG"
@@ -173,6 +175,23 @@ class InputManager:
         self.song._start_song_by_index(random_index, now)
         print(f"[DEMO] Phase: SONG (random index={random_index})")
 
+    def _draw_demo_indicator(self) -> None:
+        """Draw a purple pixel at top-right corner as demo mode indicator."""
+        if self._led is None:
+            return
+        self._led.set_xy(31, 0, (128, 0, 128))
+        self._led.show()
+
+    def _demo_cycle_next(self, now: float) -> None:
+        """Long-press D14 during demo: skip to next demo phase."""
+        if self._demo_phase in ("PIANO",):
+            self._demo_start_rhythm(now)
+        elif self._demo_phase in ("RHYTHM_SELECT", "RHYTHM_PLAY"):
+            self._demo_start_song(now)
+        elif self._demo_phase == "SONG":
+            self._demo_start_piano(now)
+        print(f"[DEMO] Manual skip → {self._demo_phase}")
+
     def _update_demo(self, now: float) -> None:
         if not self._demo_active:
             return
@@ -181,8 +200,20 @@ class InputManager:
             if now - self._demo_phase_start >= self._demo_piano_duration:
                 self._demo_start_rhythm(now)
 
-        elif self._demo_phase == "RHYTHM":
-            if getattr(self.rhythm, "phase", None) == "DONE":
+        elif self._demo_phase == "RHYTHM_SELECT":
+            # user selected difficulty → rhythm started playing
+            if getattr(self.rhythm, "phase", None) == "PLAY":
+                self._demo_phase = "RHYTHM_PLAY"
+                print("[DEMO] Phase: RHYTHM_PLAY (user selected difficulty)")
+            # 20s timeout → skip to song
+            elif now - self._demo_phase_start >= 20.0:
+                print("[DEMO] RHYTHM_SELECT timeout, skipping to SONG")
+                self._demo_start_song(now)
+
+        elif self._demo_phase == "RHYTHM_PLAY":
+            # wait for postgame score display to fully finish
+            if self._rhythm_postgame_just_finished:
+                self._rhythm_postgame_just_finished = False
                 self._demo_start_song(now)
 
         elif self._demo_phase == "SONG":
@@ -239,6 +270,7 @@ class InputManager:
 
             if ev.type == EventType.NEXT_MODE:
                 if self._demo_active:
+                    self._demo_cycle_next(now)
                     continue
                 self._cycle_mode(now)
                 continue
@@ -425,6 +457,14 @@ class InputManager:
         elif stage == "best_score_wait_done":
             # Key sync point: only when Pico tells us BEST score display finished
             if self._pico_best_score_done:
+                if self._demo_active:
+                    # Demo: skip title screen, go straight to next phase
+                    self._rhythm_postgame_started = False
+                    self._rhythm_postgame_stage = None
+                    self._pico_best_score_done = False
+                    self._rhythm_postgame_just_finished = True
+                    return
+
                 # 1) Make Pico jump back to RYTHM.bmp immediately
                 try:
                     self.pico_display.send_rhythm_back_to_title()
@@ -446,6 +486,7 @@ class InputManager:
                 self._rhythm_postgame_started = False
                 self._rhythm_postgame_stage = None
                 self._pico_best_score_done = False
+                self._rhythm_postgame_just_finished = True
 
     def update(self, now: float) -> None:
         # 0) Demo mode transitions (checked before everything else)
@@ -478,9 +519,8 @@ class InputManager:
                 if hasattr(self.rhythm, "update"):
                     self.rhythm.update(now)
 
-            # Post-game controller: skip during demo (demo handles DONE → next phase)
-            if not self._demo_active:
-                self._maybe_run_rhythm_postgame_timeline(now)
+            # Post-game controller: always run (including demo)
+            self._maybe_run_rhythm_postgame_timeline(now)
 
             # During title sync window, ONLY InputManager drives Pi LEDs
             if self._rhythm_postgame_stage == "pi_colors_during_title":
@@ -489,3 +529,7 @@ class InputManager:
         elif self.current_mode == "song":
             if hasattr(self.song, "update"):
                 self.song.update(now)
+
+        # 3) Normal mode indicator: purple pixel at top-right corner
+        if not self._demo_active:
+            self._draw_demo_indicator()
