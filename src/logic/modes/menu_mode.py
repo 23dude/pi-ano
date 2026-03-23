@@ -7,10 +7,11 @@ from typing import List
 from src.hardware.led.led_matrix import LedMatrix
 from src.logic.input_event import InputEvent
 from src.hardware.config.keys import KeyId
+from src.logic.modes.base_mode import BaseMode
 
 
 
-class MenuMode:
+class MenuMode(BaseMode):
     """
     Default menu / home screen mode.
 
@@ -96,8 +97,7 @@ class MenuMode:
         # 3) Draw shimmering 5-key gradient
         self._draw_shimmer_keys(t)
 
-        # 4) Push to hardware
-        self.led.show()
+        # show() is called centrally by InputManager
 
     # ---------------- helpers ----------------
 

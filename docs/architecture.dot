@@ -1,0 +1,57 @@
+digraph PiAno {
+    rankdir=LR;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=12, style=filled, shape=box, penwidth=1.2];
+    edge [fontname="Helvetica", fontsize=9, color="#444444", penwidth=1.2];
+    bgcolor="white";
+    pad=0.5;
+    nodesep=0.5;
+    ranksep=1.3;
+
+    // ── Input ──
+    subgraph cluster_input {
+        label="Input"; labeljust=l; fontsize=14;
+        style=filled; fillcolor="#fff3e0"; color="#e6a04a"; penwidth=2;
+        buttons [label="Buttons (GPIO)\n5 keys + demo btn", fillcolor="#ffe0b2", color="#e6a04a"];
+        ir [label="IR Sensors (I2C)\nhand proximity", fillcolor="#ffe0b2", color="#e6a04a"];
+        keyboard [label="Keyboard (stdin)\ndebug commands", fillcolor="#ffe0b2", color="#e6a04a"];
+    }
+
+    // ── Logic ──
+    subgraph cluster_logic {
+        label="Logic"; labeljust=l; fontsize=14;
+        style=filled; fillcolor="#e8f5e9"; color="#55aa55"; penwidth=2;
+
+        manager [label="InputManager\nevent routing & mode switching", fillcolor="#a5d6a7", color="#449944", penwidth=2.5];
+        demo [label="DemoController\nauto-cycle for showcase", fillcolor="#c8e6c9", color="#66aa66"];
+
+        menu [label="MenuMode\ntitle screen animation", fillcolor="#c8e6c9", color="#66aa66"];
+        piano [label="PianoMode\nfree-play instrument", fillcolor="#c8e6c9", color="#66aa66"];
+        rhythm [label="RhythmMode\nfalling-note game + scoring", fillcolor="#c8e6c9", color="#66aa66"];
+        song [label="SongMode\nMIDI playlist + rainbow LEDs", fillcolor="#c8e6c9", color="#66aa66"];
+    }
+
+    // ── Output ──
+    subgraph cluster_output {
+        label="Output"; labeljust=l; fontsize=14;
+        style=filled; fillcolor="#e3f2fd"; color="#5599cc"; penwidth=2;
+        led [label="LED Matrix\n32x16 NeoPixel", fillcolor="#bbdefb", color="#5599cc"];
+        audio [label="Audio\nFluidSynth", fillcolor="#bbdefb", color="#5599cc"];
+        pico [label="Pico Display\nHUB75 via USB Serial", fillcolor="#bbdefb", color="#5599cc"];
+    }
+
+    // ── Flow ──
+    buttons -> manager;
+    ir -> manager;
+    keyboard -> manager;
+
+    manager -> demo [dir=both, style=dashed];
+    manager -> menu;
+    manager -> piano;
+    manager -> rhythm;
+    manager -> song;
+    manager -> pico;
+
+    {menu piano rhythm song} -> led;
+    {piano rhythm song} -> audio;
+}

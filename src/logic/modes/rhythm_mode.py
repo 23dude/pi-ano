@@ -9,10 +9,11 @@ from typing import List, Optional, Dict, Tuple
 import mido
 
 from src.hardware.led.led_matrix import LedMatrix
-from src.hardware.config.keys import KeyId
+from src.hardware.config.keys import KeyId, midi_note_to_key
 from src.logic.input_event import InputEvent, EventType
 from src.hardware.audio.audio_engine import AudioEngine
 
+from src.logic.modes.base_mode import BaseMode
 from src.logic.modes.rhythm_chart import ChartNote
 from src.logic.modes.rhythm_audio import AudioScheduler
 
@@ -64,7 +65,7 @@ LEAD_IN_SEC = 1.0
 TAIL_HOLD_SEC = 4.0
 
 
-class RhythmMode:
+class RhythmMode(BaseMode):
     """
     Rhythm mode.
 
@@ -321,10 +322,9 @@ class RhythmMode:
                 f"raw={len(raw_notes)} → melody={len(melody)}"
             )
 
-    def _midi_note_to_key(self, midi_note: int) -> KeyId:
-        idx = (midi_note - 60) % 5
-        idx = max(0, min(4, idx))
-        return KeyId(idx)
+    @staticmethod
+    def _midi_note_to_key(midi_note: int) -> KeyId:
+        return midi_note_to_key(midi_note)
 
     def _start_feedback(self, song_time: float, color: Tuple[int, int, int]) -> None:
         self.feedback_color = color
@@ -458,7 +458,7 @@ class RhythmMode:
                 for y in range(h):
                     self.led.set_xy(x, y, color)
 
-        self.led.show()
+        # show() is called centrally by InputManager
 
     # ------------------------------------------------------------------
     # Helpers for PLAY phase
@@ -485,7 +485,7 @@ class RhythmMode:
         # Enter DONE: clear LEDs ONCE
         self.phase = "DONE"
         self.led.clear_all()
-        self.led.show()
+        # show() is called centrally by InputManager
 
         if self.debug:
             print(
@@ -564,4 +564,4 @@ class RhythmMode:
                     self.led.set_xy(left_x, y, self.feedback_color)
                     self.led.set_xy(right_x, y, self.feedback_color)
 
-        self.led.show()
+        # show() is called centrally by InputManager

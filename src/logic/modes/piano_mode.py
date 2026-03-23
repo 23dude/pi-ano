@@ -7,6 +7,7 @@ from src.hardware.led.led_matrix import LedMatrix
 from src.hardware.config.keys import KeyId, ALL_KEYS, make_rainbow_palette
 from src.logic.input_event import InputEvent, EventType
 from src.hardware.audio.audio_engine import AudioEngine
+from src.logic.modes.base_mode import BaseMode
 
 
 WHITE = (255, 255, 255)
@@ -25,7 +26,7 @@ class NoteState:
     velocity: float  # 0.0 ~ 1.0
 
 
-class PianoMode:
+class PianoMode(BaseMode):
     """
     Piano mode logic layer.
 
@@ -40,6 +41,11 @@ class PianoMode:
         self.notes: Dict[KeyId, NoteState] = {
             k: NoteState(key=k, is_on=False, velocity=1.0) for k in ALL_KEYS
         }
+
+    def reset(self, now: float) -> None:
+        for state in self.notes.values():
+            state.is_on = False
+            state.velocity = 1.0
 
     # ---- high-level API for notes ----
 
@@ -106,7 +112,7 @@ class PianoMode:
             if state.is_on:
                 self.led.fill_key(key, brightness=state.velocity)
 
-        self.led.show()
+        # show() is called centrally by InputManager
 
     def randomize_palette(self) -> None:
         """

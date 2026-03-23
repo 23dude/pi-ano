@@ -7,7 +7,7 @@ import digitalio
 
 from src.logic.input_event import InputEvent, EventType
 from src.hardware.config.keys import KeyId
-from src.logic.input_config import LONG_PRESS
+from src.logic.input_config import LONG_PRESS, LONG_PRESS_DEMO_SEC
 
 
 @dataclass
@@ -36,7 +36,7 @@ class ButtonInput:
     Wiring (using pull-up inputs, active LOW):
         KEY_0 → D25
         KEY_1 → D24 (long-press for "next soundfont")
-        KEY_2 → D18
+        KEY_2 → D23
         KEY_3 → D15
         KEY_4 → D14  (long-press for "next mode")
 
@@ -46,7 +46,7 @@ class ButtonInput:
             - On release edge (LOW → HIGH): emit NOTE_OFF
         - Long press on KEY_4 (D14):
             - If held for at least LONG_PRESS_NEXT_MODE_SEC: emit EventType.NEXT_MODE (once per press)
-        - Long press on KEY_1 (D25):
+        - Long press on KEY_1 (D24):
             - If held for at least LONG_PRESS_NEXT_SF2_SEC: emit EventType.NEXT_SF2 (once per press)
 
     Note:
@@ -83,6 +83,14 @@ class ButtonInput:
                 long_sent=False,
             )
             self.channels.append(channel)
+
+        # Standalone demo button on D19 (no KeyId, long-press only → DEMO_TOGGLE)
+        self._demo_pin = digitalio.DigitalInOut(board.D19)
+        self._demo_pin.direction = digitalio.Direction.INPUT
+        self._demo_pin.pull = digitalio.Pull.UP
+        self._demo_last_value: bool = True
+        self._demo_press_time: float | None = None
+        self._demo_long_sent: bool = False
 
     # ------------------------------------------------------------------
     # Public API
@@ -179,5 +187,29 @@ class ButtonInput:
 
             # Update last_value for next poll
             ch.last_value = current
+
+        # --------------------------------------------------------------
+        # Demo button (D19): long-press only → DEMO_TOGGLE
+        # --------------------------------------------------------------
+        demo_current = self._demo_pin.value  # True = released
+
+        if self._demo_last_value and (not demo_current):
+            # Press edge
+            self._demo_press_time = now
+            self._demo_long_sent = False
+
+        if (not demo_current) and self._demo_press_time is not None and (not self._demo_long_sent):
+            if now - self._demo_press_time >= LONG_PRESS_DEMO_SEC:
+                events.append(InputEvent(type=EventType.DEMO_TOGGLE, source="button"))
+                self._demo_long_sent = True
+                if self.debug:
+                    print("[BTN] LONG PRESS D19 → DEMO_TOGGLE")
+
+        if (not self._demo_last_value) and demo_current:
+            # Release edge
+            self._demo_press_time = None
+            self._demo_long_sent = False
+
+        self._demo_last_value = demo_current
 
         return events

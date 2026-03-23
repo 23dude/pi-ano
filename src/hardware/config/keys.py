@@ -112,3 +112,10 @@ KEY_COLOR_PALETTES: List[Dict[KeyId, Tuple[int, int, int]]] = [
     make_rainbow_palette(hue_offset=0.40),
     make_rainbow_palette(hue_offset=0.50),
 ]
+
+
+def midi_note_to_key(midi_note: int) -> KeyId:
+    """Map a MIDI note number to one of 5 keys using modulo-5 from C4 (60)."""
+    idx = (midi_note - 60) % 5
+    idx = max(0, min(4, idx))
+    return KeyId(idx)

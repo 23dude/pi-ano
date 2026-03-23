@@ -54,6 +54,8 @@ class PicoModeDisplay:
         self.enabled = enabled and (serial is not None)
         self.ser: Optional[serial.Serial] = None
         self._rx_buffer: str = ""
+        self._last_reconnect_attempt: float = 0.0
+        self._reconnect_cooldown: float = 5.0  # seconds between reconnect attempts
 
         if not self.enabled:
             print("[PicoModeDisplay] disabled (no serial module or disabled flag)")
@@ -92,9 +94,40 @@ class PicoModeDisplay:
                 pass
             self.ser = None
 
+    def _try_reconnect(self) -> bool:
+        """Attempt to reopen the serial port. Returns True on success."""
+        if serial is None:
+            return False
+
+        now = time.time()
+        if now - self._last_reconnect_attempt < self._reconnect_cooldown:
+            return False
+
+        self._last_reconnect_attempt = now
+
+        try:
+            self.ser = serial.Serial(
+                self.device,
+                baudrate=self.baudrate,
+                timeout=0,
+            )
+            time.sleep(0.5)
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            self._rx_buffer = ""
+            self.enabled = True
+            print(f"[PicoModeDisplay] reconnected to {self.device}")
+            return True
+        except Exception as e:
+            print(f"[PicoModeDisplay] reconnect failed: {e}")
+            self.ser = None
+            return False
+
     def _send_line(self, line: str) -> None:
         """Send one newline-terminated command line to Pico."""
-        if not self.enabled or self.ser is None:
+        if self.ser is None:
+            self._try_reconnect()
+        if self.ser is None:
             return
         try:
             text = line.strip()
@@ -104,6 +137,7 @@ class PicoModeDisplay:
             print(f"[Pico >>] {text}")
         except Exception as e:
             print("[PicoModeDisplay] write error:", e)
+            self.ser = None
 
     # ------------------------------------------------------------------
     # Public API used by InputManager / main.py
@@ -141,7 +175,9 @@ class PicoModeDisplay:
         Returns:
             A list of complete lines (without trailing newline).
         """
-        if not self.enabled or self.ser is None:
+        if self.ser is None:
+            self._try_reconnect()
+        if self.ser is None:
             return []
 
         msgs: List[str] = []
@@ -167,6 +203,7 @@ class PicoModeDisplay:
 
         except Exception as e:
             print("[PicoModeDisplay] read error:", e)
+            self.ser = None
 
         return msgs
 

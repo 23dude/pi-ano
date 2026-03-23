@@ -69,15 +69,13 @@ def main() -> None:
         rhythm=rhythm,
         song=song,
         pico_display=pico_display,
+        led=led,
     )
 
     print_startup_help()
 
-    # Best-effort: tell Pico to show initial mode
-    try:
-        pico_display.show_mode("menu")
-    except Exception as e:
-        print("[Main] initial show_mode(menu) error:", e)
+    # Start in demo mode by default
+    input_manager._demo.enter(time.monotonic())
 
     # ------------------------------------------------------------------
     # Main loop
@@ -158,11 +156,11 @@ def print_startup_help() -> None:
     print()
 
     print("Buttons:")
-    print("  KEY_0 ~ KEY_4 (D25, D24, D18, D15, D14)")
+    print("  KEY_0 ~ KEY_4 (D25, D24, D23, D15, D14)")
     print("    - Used as hit buttons in rhythm mode")
     print("  Long press D14 (KEY_4)")
     print("    - Cycle through modes: menu → piano → rhythm → song")
-    print("  Long press D25 (KEY_1)")
+    print("  Long press D24 (KEY_1)")
     print("    - Cycle through loaded SoundFonts (if multiple are loaded)")
     print()
     print("Press Ctrl+C in the terminal to quit.\n")
@@ -194,7 +192,7 @@ def poll_all_inputs(input_controller: InputController, current_mode: str):
             btn_events = [
                 e
                 for e in btn_events
-                if e.type in (EventType.NEXT_MODE, EventType.MODE_SWITCH, EventType.NEXT_SF2, EventType.SHUTDOWN)
+                if e.type in (EventType.NEXT_MODE, EventType.MODE_SWITCH, EventType.NEXT_SF2, EventType.SHUTDOWN, EventType.DEMO_TOGGLE)
             ]
 
         events.extend(btn_events)

@@ -7,6 +7,7 @@ from src.hardware.config.keys import KeyId
 LONG_PRESS_SHUTDOWN_SEC  = 2.0   # KEY_0
 LONG_PRESS_NEXT_SF2_SEC  = 1.0   # KEY_1
 LONG_PRESS_NEXT_MODE_SEC = 1.0   # KEY_4
+LONG_PRESS_DEMO_SEC      = 1.0   # D19 (demo button, no KeyId)
 
 # Mapping: which keys support long-press + their thresholds
 LONG_PRESS = {
