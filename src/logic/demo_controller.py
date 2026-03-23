@@ -14,8 +14,9 @@ class DemoController:
             → RHYTHM_PLAY (until postgame done) → SONG (until finished) → PIANO …
     """
 
-    PIANO_DURATION: float = 20.0
-    RHYTHM_SELECT_TIMEOUT: float = 20.0
+    MENU_DURATION: float = 5.0
+    PIANO_DURATION: float = 15.0
+    RHYTHM_SELECT_TIMEOUT: float = 15.0
 
     def __init__(
         self,
@@ -66,6 +67,12 @@ class DemoController:
     # Phase starters
     # ------------------------------------------------------------------
 
+    def _start_menu(self, now: float) -> None:
+        self._phase = "MENU"
+        self._phase_start = now
+        self._switch_mode("menu", now)
+        print("[DEMO] Phase: MENU (5s)")
+
     def _start_piano(self, now: float) -> None:
         self._phase = "PIANO"
         self._phase_start = now
@@ -108,7 +115,11 @@ class DemoController:
         if not self.active:
             return
 
-        if self._phase == "PIANO":
+        if self._phase == "MENU":
+            if now - self._phase_start >= self.MENU_DURATION:
+                self._start_piano(now)
+
+        elif self._phase == "PIANO":
             if now - self._phase_start >= self.PIANO_DURATION:
                 self._start_rhythm(now)
 
@@ -138,4 +149,4 @@ class DemoController:
         if self._led is None:
             return
         self._led.set_xy(31, 0, (128, 0, 128))
-        self._led.show()
+        # show() is called centrally by InputManager

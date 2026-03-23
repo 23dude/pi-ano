@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from typing import Dict, Optional, List
 import os
 import fluidsynth
@@ -82,6 +83,9 @@ class AudioEngine:
 
         self.hit_note: int = 84  # C6
 
+        # Thread safety: protects all FluidSynth calls
+        self._lock = threading.Lock()
+
 
     # ------------------------------------------------------------------
     # SoundFont Management
@@ -158,8 +162,9 @@ class AudioEngine:
             print("[AudioEngine] No SoundFont loaded.")
             return
 
-        self._current_sf_index = (self._current_sf_index + 1) % len(self._soundfont_ids)
-        self._apply_current_soundfont()
+        with self._lock:
+            self._current_sf_index = (self._current_sf_index + 1) % len(self._soundfont_ids)
+            self._apply_current_soundfont()
 
 
     # ------------------------------------------------------------------
@@ -190,7 +195,8 @@ class AudioEngine:
         """
         midi_note = self._key_to_midi_note(key)
         if midi_note is not None:
-            self.fs.noteon(self.piano_channel, midi_note, self._vel01_to_127(velocity))
+            with self._lock:
+                self.fs.noteon(self.piano_channel, midi_note, self._vel01_to_127(velocity))
 
     def note_off(self, key: KeyId) -> None:
         """
@@ -198,7 +204,8 @@ class AudioEngine:
         """
         midi_note = self._key_to_midi_note(key)
         if midi_note is not None:
-            self.fs.noteoff(self.piano_channel, midi_note)
+            with self._lock:
+                self.fs.noteoff(self.piano_channel, midi_note)
 
 
     # ------------------------------------------------------------------
@@ -208,13 +215,15 @@ class AudioEngine:
         """
         Trigger note on for a given MIDI note number.
         """
-        self.fs.noteon(self.piano_channel, midi_note, self._vel01_to_127(velocity))
+        with self._lock:
+            self.fs.noteon(self.piano_channel, midi_note, self._vel01_to_127(velocity))
 
     def note_off_midi(self, midi_note: int) -> None:
         """
         Trigger note off for a given MIDI note number.
         """
-        self.fs.noteoff(self.piano_channel, midi_note)
+        with self._lock:
+            self.fs.noteoff(self.piano_channel, midi_note)
 
 
     # ------------------------------------------------------------------
@@ -224,7 +233,8 @@ class AudioEngine:
         """
         Play the hit sound effect (SFX) on the hit channel.
         """
-        self.fs.noteon(self.hit_channel, self.hit_note, self._vel01_to_127(velocity))
+        with self._lock:
+            self.fs.noteon(self.hit_channel, self.hit_note, self._vel01_to_127(velocity))
 
 
     # ------------------------------------------------------------------
@@ -234,9 +244,10 @@ class AudioEngine:
         """
         Stop all notes on both channels.
         """
-        for n in range(128):
-            self.fs.noteoff(self.piano_channel, n)
-            self.fs.noteoff(self.hit_channel, n)
+        with self._lock:
+            for n in range(128):
+                self.fs.noteoff(self.piano_channel, n)
+                self.fs.noteoff(self.hit_channel, n)
 
     def close(self) -> None:
         """

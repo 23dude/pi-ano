@@ -74,11 +74,8 @@ def main() -> None:
 
     print_startup_help()
 
-    # Best-effort: tell Pico to show initial mode
-    try:
-        pico_display.show_mode("menu")
-    except Exception as e:
-        print("[Main] initial show_mode(menu) error:", e)
+    # Start in demo mode by default
+    input_manager._demo.enter(time.monotonic())
 
     # ------------------------------------------------------------------
     # Main loop

@@ -25,7 +25,7 @@ Timing windows: PERFECT (80ms), GOOD (160ms), MISS (250ms+). High scores are sav
 Plays MIDI files from a built-in playlist with a full-panel rainbow gradient animation. Press KEY_3 to skip tracks.
 
 ### Demo
-Long-press the demo button (D19) to enter an auto-cycling showcase: Piano (20s) → Rhythm (select difficulty or auto-skip after 20s) → Song (random track) → loop. Long-press KEY_4 to manually skip phases.
+Long-press the demo button (D19) to enter an auto-cycling showcase: Piano (15s) → Rhythm (select difficulty or auto-skip after 15s) → Song (random track) → loop. Long-press KEY_4 to manually skip phases.
 
 ## Hardware
 
@@ -60,6 +60,10 @@ src/
     ├── code.py                  # Pico firmware (CircuitPython)
     └── graphics/                # BMP assets for HUB75 display
 ```
+
+## Architecture
+
+![Architecture](./docs/architecture.png)
 
 ## Setup
 

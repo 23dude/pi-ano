@@ -15,9 +15,11 @@ from src.hardware.config.keys import (
     KeyId,
     KEY_COLOR_PALETTES,  # still used to pick a palette per song (for consistency)
     KEY_ZONES,           # used to know which x columns belong to which key
+    midi_note_to_key,
 )
 from src.hardware.audio.audio_engine import AudioEngine
 from src.logic.input_event import InputEvent, EventType
+from src.logic.modes.base_mode import BaseMode
 
 
 # ---------------------------------------------------------------------------
@@ -45,7 +47,7 @@ class ActiveLedNote:
 # MidiSongMode
 # ---------------------------------------------------------------------------
 
-class MidiSongMode:
+class MidiSongMode(BaseMode):
     """
     Mode: play songs from a MIDI playlist & light 5 LED keys.
 
@@ -216,27 +218,10 @@ class MidiSongMode:
 
         return events
 
-    # MIDI note → 5 LED keys (mod 5)
-    def _midi_note_to_key(self, midi_note: int) -> KeyId:
-        """
-        Map MIDI note to 5 keys using modulo-5.
-
-        - base C4 = 60
-        - (midi_note - base) % 5 -> 0..4 → KEY_0..KEY_4
-        """
-        base = 60
-        idx = (midi_note - base) % 5
-
-        if idx == 0:
-            return KeyId.KEY_0
-        elif idx == 1:
-            return KeyId.KEY_1
-        elif idx == 2:
-            return KeyId.KEY_2
-        elif idx == 3:
-            return KeyId.KEY_3
-        else:
-            return KeyId.KEY_4
+    @staticmethod
+    def _midi_note_to_key(midi_note: int) -> KeyId:
+        """Map MIDI note to 5 keys using modulo-5 from C4 (60)."""
+        return midi_note_to_key(midi_note)
 
     # ------------------------------------------------------------------
     # Lifecycle / playlist control
@@ -451,7 +436,7 @@ class MidiSongMode:
 
                 self.led.set_xy(x, y, (rr, gg, bb))
 
-        self.led.show()
+        # show() is called centrally by InputManager
 
     def skip_to_next(self, now: float) -> None:
         """
@@ -467,7 +452,6 @@ class MidiSongMode:
 
         # Clear LEDs
         self.led.clear_all()
-        self.led.show()
 
         # Start next song in sequence
         self._start_next_song(now)

@@ -27,6 +27,7 @@ class InputManager:
         self.song = song
 
         self.pico_display = pico_display
+        self._led = led
 
         self.current_mode: str = "menu"
         self._mode_order = ["menu", "piano", "rhythm", "song"]
@@ -67,22 +68,19 @@ class InputManager:
             return
 
         if self.current_mode == "rhythm":
-            if hasattr(self.rhythm, "on_exit"):
-                self.rhythm.on_exit()
+            self.rhythm.on_exit()
             self._postgame.reset_state()
 
         self.current_mode = mode_name
         print(f"[MODE] Switched to: {self.current_mode.upper()}")
 
         if mode_name == "menu":
-            if hasattr(self.menu, "reset"):
-                self.menu.reset(now)
+            self.menu.reset(now)
 
         elif mode_name == "piano":
             if hasattr(self.piano, "randomize_palette"):
                 self.piano.randomize_palette()
-            if hasattr(self.piano, "reset"):
-                self.piano.reset(now)
+            self.piano.reset(now)
 
         elif mode_name == "rhythm":
             self._postgame.reset_state()
@@ -176,8 +174,7 @@ class InputManager:
 
     def _dispatch_mode_events(self, events: List[InputEvent], now: float) -> None:
         if self.current_mode == "menu":
-            if hasattr(self.menu, "handle_events"):
-                self.menu.handle_events(events)
+            self.menu.handle_events(events)
 
         elif self.current_mode == "piano":
             filtered: List[InputEvent] = []
@@ -186,8 +183,7 @@ class InputManager:
                     if getattr(ev, "source", None) == "button":
                         continue
                 filtered.append(ev)
-            if hasattr(self.piano, "handle_events"):
-                self.piano.handle_events(filtered)
+            self.piano.handle_events(filtered)
 
         elif self.current_mode == "rhythm":
             if self._postgame.is_in_postgame():
@@ -195,8 +191,7 @@ class InputManager:
             self._handle_rhythm_events(events, now)
 
         elif self.current_mode == "song":
-            if hasattr(self.song, "handle_events"):
-                self.song.handle_events(events)
+            self.song.handle_events(events)
 
     def _handle_rhythm_events(self, events: List[InputEvent], now: float) -> None:
         phase = getattr(self.rhythm, "phase", None)
@@ -244,7 +239,7 @@ class InputManager:
                 if getattr(ev, "source", None) == "button"
                 and ev.type in (EventType.NOTE_ON, EventType.NOTE_OFF)
             ]
-            if button_events and hasattr(self.rhythm, "handle_events"):
+            if button_events:
                 self.rhythm.handle_events(button_events)
             return
 
@@ -268,19 +263,16 @@ class InputManager:
 
         # 2) Mode updates
         if self.current_mode == "menu":
-            if hasattr(self.menu, "update"):
-                self.menu.update(now)
+            self.menu.update(now)
 
         elif self.current_mode == "piano":
-            if hasattr(self.piano, "update"):
-                self.piano.update(now)
+            self.piano.update(now)
 
         elif self.current_mode == "rhythm":
             phase = getattr(self.rhythm, "phase", None)
             in_postgame = (phase == "DONE" and self._postgame.is_in_postgame())
             if not in_postgame:
-                if hasattr(self.rhythm, "update"):
-                    self.rhythm.update(now)
+                self.rhythm.update(now)
 
             self._postgame.run_timeline(now, demo_active=self._demo.active)
 
@@ -292,9 +284,12 @@ class InputManager:
                 self._postgame.render_difficulty_colors()
 
         elif self.current_mode == "song":
-            if hasattr(self.song, "update"):
-                self.song.update(now)
+            self.song.update(now)
 
         # 3) Normal mode indicator: purple pixel at top-right corner
         if not self._demo.active:
             self._demo.draw_normal_indicator()
+
+        # 4) Single LED show() per frame
+        if self._led is not None:
+            self._led.show()
