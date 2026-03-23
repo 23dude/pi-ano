@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import random
 from typing import List, Optional
 
 from src.logic.input_event import InputEvent, EventType
@@ -48,6 +49,12 @@ class InputManager:
         # Sync duration: how long Pi shows difficulty colors while Pico shows RYTHM.bmp
         # Match Pico's RHYTHM_TITLE_HOLD_SEC (you showed it's 3.0s)
         self._pi_colors_during_title_sec: float = 3.0
+
+        # Demo mode state
+        self._demo_active: bool = False
+        self._demo_phase: str = ""       # "PIANO", "RHYTHM", "SONG"
+        self._demo_phase_start: float = 0.0
+        self._demo_piano_duration: float = 20.0
 
     @property
     def current_mode_name(self) -> str:
@@ -127,6 +134,61 @@ class InputManager:
             except Exception as e:
                 print("[InputManager] pico_display.show_mode error:", e)
 
+    # ------------------------------------------------------------------
+    # Demo mode
+    # ------------------------------------------------------------------
+
+    def _enter_demo(self, now: float) -> None:
+        print("[DEMO] Entering demo mode")
+        self._demo_active = True
+        self._demo_start_piano(now)
+
+    def _exit_demo(self, now: float) -> None:
+        print("[DEMO] Exiting demo mode")
+        self._demo_active = False
+        self._demo_phase = ""
+        self.song.loop_playlist = True
+        self._switch_mode("menu", now)
+
+    def _demo_start_piano(self, now: float) -> None:
+        self._demo_phase = "PIANO"
+        self._demo_phase_start = now
+        self._switch_mode("piano", now)
+        print("[DEMO] Phase: PIANO (20s)")
+
+    def _demo_start_rhythm(self, now: float) -> None:
+        self._demo_phase = "RHYTHM"
+        self._demo_phase_start = now
+        self._switch_mode("rhythm", now)
+        self.rhythm.set_difficulty("easy")
+        self.rhythm.start_play_after_countdown(now)
+        print("[DEMO] Phase: RHYTHM (easy, auto-play)")
+
+    def _demo_start_song(self, now: float) -> None:
+        self._demo_phase = "SONG"
+        self._demo_phase_start = now
+        self.song.loop_playlist = False
+        self._switch_mode("song", now)
+        random_index = random.randint(0, len(self.song.playlist) - 1)
+        self.song._start_song_by_index(random_index, now)
+        print(f"[DEMO] Phase: SONG (random index={random_index})")
+
+    def _update_demo(self, now: float) -> None:
+        if not self._demo_active:
+            return
+
+        if self._demo_phase == "PIANO":
+            if now - self._demo_phase_start >= self._demo_piano_duration:
+                self._demo_start_rhythm(now)
+
+        elif self._demo_phase == "RHYTHM":
+            if getattr(self.rhythm, "phase", None) == "DONE":
+                self._demo_start_song(now)
+
+        elif self._demo_phase == "SONG":
+            if self.song.song_finished:
+                self._demo_start_piano(now)
+
     def _handle_pico_message(self, msg: str, now: float) -> None:
         if not msg:
             return
@@ -153,6 +215,13 @@ class InputManager:
 
     def handle_events(self, events: List[InputEvent], now: float) -> None:
         for ev in events:
+            if ev.type == EventType.DEMO_TOGGLE:
+                if self._demo_active:
+                    self._exit_demo(now)
+                else:
+                    self._enter_demo(now)
+                return
+
             if ev.type == EventType.NEXT_SF2:
                 audio = self._get_audio_engine()
                 if audio is not None:
@@ -163,10 +232,14 @@ class InputManager:
                 continue
 
             if ev.type == EventType.MODE_SWITCH and ev.mode_name:
+                if self._demo_active:
+                    continue
                 self._switch_mode(ev.mode_name, now)
                 continue
 
             if ev.type == EventType.NEXT_MODE:
+                if self._demo_active:
+                    continue
                 self._cycle_mode(now)
                 continue
 
@@ -375,6 +448,9 @@ class InputManager:
                 self._pico_best_score_done = False
 
     def update(self, now: float) -> None:
+        # 0) Demo mode transitions (checked before everything else)
+        self._update_demo(now)
+
         # 1) Poll Pico messages
         if self.pico_display is not None:
             try:
@@ -402,8 +478,9 @@ class InputManager:
                 if hasattr(self.rhythm, "update"):
                     self.rhythm.update(now)
 
-            # Post-game controller (still runs)
-            self._maybe_run_rhythm_postgame_timeline(now)
+            # Post-game controller: skip during demo (demo handles DONE → next phase)
+            if not self._demo_active:
+                self._maybe_run_rhythm_postgame_timeline(now)
 
             # During title sync window, ONLY InputManager drives Pi LEDs
             if self._rhythm_postgame_stage == "pi_colors_during_title":

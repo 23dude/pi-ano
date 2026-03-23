@@ -13,6 +13,7 @@ class EventType(Enum):
     NEXT_MODE = auto()     # button: long press D14 → switch to next mode
     NEXT_SF2 = auto()      # button: long press D25 (KEY_1) → switch SoundFont
     SHUTDOWN = auto()      # button: long press KEY_0 to quit
+    DEMO_TOGGLE = auto()   # button: long press D19 to toggle demo mode
 
 @dataclass
 class InputEvent:

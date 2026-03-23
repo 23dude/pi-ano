@@ -194,7 +194,7 @@ def poll_all_inputs(input_controller: InputController, current_mode: str):
             btn_events = [
                 e
                 for e in btn_events
-                if e.type in (EventType.NEXT_MODE, EventType.MODE_SWITCH, EventType.NEXT_SF2, EventType.SHUTDOWN)
+                if e.type in (EventType.NEXT_MODE, EventType.MODE_SWITCH, EventType.NEXT_SF2, EventType.SHUTDOWN, EventType.DEMO_TOGGLE)
             ]
 
         events.extend(btn_events)

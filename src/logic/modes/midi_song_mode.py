@@ -474,3 +474,12 @@ class MidiSongMode:
 
         if self.debug:
             print("[MidiSongMode] Skipped to next song by external trigger")
+
+    @property
+    def song_finished(self) -> bool:
+        """True when the current song has finished playing (all notes off, no active LEDs)."""
+        return (
+            self.start_time is not None
+            and self.next_off_index >= len(self.events)
+            and not self.active_led_notes
+        )
