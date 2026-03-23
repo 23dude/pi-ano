@@ -25,7 +25,7 @@ Timing windows: PERFECT (80ms), GOOD (160ms), MISS (250ms+). High scores are sav
 Plays MIDI files from a built-in playlist with a full-panel rainbow gradient animation. Press KEY_3 to skip tracks.
 
 ### Demo
-Long-press the demo button (D19) to enter an auto-cycling showcase: Piano (15s) → Rhythm (select difficulty or auto-skip after 15s) → Song (random track) → loop. Long-press KEY_4 to manually skip phases.
+Boots into demo mode by default. Auto-cycles: Piano (15s) → Rhythm (select difficulty or auto-skip after 15s) → Song (random track) → loop. Long-press the red button (D19) to exit demo and enter normal mode. Long-press KEY_4 to manually skip phases.
 
 ## Hardware
 
@@ -105,7 +105,7 @@ Copy `src/pico/code.py`, `src/pico/fonts/`, and `src/pico/graphics/` to the Pico
 | KEY_0 – KEY_4 | Play notes (piano) / Hit lanes (rhythm) |
 | Long-press KEY_0 / leftmost blue key (D25) | Shutdown / quit |
 | Long-press KEY_4 / rightmost blue key (D14) | Cycle modes |
-| Long-press KEY_1 (D25) | Cycle SoundFonts |
+| Long-press KEY_1 (D24) | Cycle SoundFonts |
 | Long-press red button (D19) | Toggle demo mode |
 | IR sensors | Gesture-based note triggers (piano mode) |
 | Keyboard `mode <name>` | Switch mode via terminal |
