@@ -90,9 +90,21 @@ class DemoController:
         self._phase_start = now
         self._song.loop_playlist = False
         self._switch_mode("song", now)
-        random_index = random.randint(0, len(self._song.playlist) - 1)
-        self._song._start_song_by_index(random_index, now)
-        print(f"[DEMO] Phase: SONG (random index={random_index})")
+
+        # Find PeppaPig.mid in playlist, fallback to random
+        target_index = None
+        for i, p in enumerate(self._song.playlist):
+            if "PeppaPig" in p.name:
+                target_index = i
+                break
+
+        if target_index is None:
+            target_index = random.randint(0, len(self._song.playlist) - 1)
+            print(f"[DEMO] Phase: SONG (PeppaPig not found, random index={target_index})")
+        else:
+            print(f"[DEMO] Phase: SONG (PeppaPig, index={target_index})")
+
+        self._song._start_song_by_index(target_index, now)
 
     # ------------------------------------------------------------------
     # Manual skip (long-press D14 during demo)

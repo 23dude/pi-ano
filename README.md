@@ -79,6 +79,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirement.txt
 
+# Add audio assets (not included in repo)
+# SoundFont files (.sf2) go in:
+#   src/hardware/audio/assets/sf2/
+# MIDI files for rhythm mode go in:
+#   src/hardware/audio/assets/midi/rhythm/
+# MIDI files for song mode go in:
+#   src/hardware/audio/assets/midi/song/
+
 # Run (requires root for GPIO/NeoPixel)
 sudo .venv/bin/python3 -m src.app.main
 ```
@@ -118,3 +126,8 @@ Copy `src/pico/code.py`, `src/pico/fonts/`, and `src/pico/graphics/` to the Pico
 - **pyfluidsynth** — Real-time MIDI audio synthesis
 - **mido** — MIDI file parsing
 - **pyserial** — USB serial communication with Pico
+
+## Contributors
+
+- [ASHLEY HUANG](https://github.com/little-xiaohe)
+- [YI-CHIA WU](https://github.com/23dude)

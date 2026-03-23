@@ -50,7 +50,7 @@ class IRInput:
         off_stable_frames: int = 1,
         timing_budget_us: int = 50_000,         
         start_continuous: bool = True,
-        power_on_delay_s: float = 0.15,
+        power_on_delay_s: float = 0.3,
     ) -> None:
         self.debug = debug
         self.on_threshold_mm = on_threshold_mm
